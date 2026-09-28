@@ -1,0 +1,52 @@
+{
+  "manifest_version": "0.3",
+  "name": "llm-wiki-claude",
+  "display_name": "llm-wiki Claude",
+  "version": "0.3.0",
+  "description": "Connect Claude Desktop to one selected llm-wiki workspace.",
+  "long_description": "Search, read, update and visualize the knowledge graph of one llm-wiki workspace. The connection is local, uses MCP over stdio, and does not require ShellUI or the web server.",
+  "author": {
+    "name": "dotdrelle"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dotdrelle/llm-wiki"
+  },
+  "server": {
+    "type": "binary",
+    "entry_point": "servers/llm-wiki-mcp.sh",
+    "mcp_config": {
+      "command": "bash",
+      "args": [
+        "${__dirname}/servers/llm-wiki-mcp.sh"
+      ],
+      "env": {
+        "WIKI_WORKSPACE_PATH": "${user_config.workspace_path}",
+        "LLM_WIKI_ENGINE_HOME": "${user_config.engine_home}"
+      }
+    }
+  },
+  "user_config": {
+    "workspace_path": {
+      "type": "directory",
+      "title": "llm-wiki workspace directory",
+      "description": "Select the exact workspace folder to use. This extension never accesses another workspace.",
+      "required": true
+    },
+    "engine_home": {
+      "type": "directory",
+      "title": "wiki-workspace installation directory",
+      "description": "Directory containing dist/bin/wiki.js for wiki-workspace.",
+      "required": true
+    }
+  },
+  "tools_generated": true,
+  "keywords": ["wiki", "knowledge", "graph", "mcp"],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18"
+    }
+  }
+}
