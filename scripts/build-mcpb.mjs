@@ -14,8 +14,10 @@ mkdirSync(join(root, 'dist'), { recursive: true });
 cpSync(join(root, 'mcpb', 'manifest.json'), join(staging, 'manifest.json'));
 mkdirSync(join(staging, 'servers'), { recursive: true });
 cpSync(join(root, 'servers', 'llm-wiki-mcp.sh'), join(staging, 'servers', 'llm-wiki-mcp.sh'));
+mkdirSync(join(staging, 'bin'), { recursive: true });
+cpSync(join(root, 'bin', 'llm-wiki-connect.mjs'), join(staging, 'bin', 'llm-wiki-connect.mjs'));
 rmSync(output, { force: true });
-execFileSync('zip', ['-q', '-r', output, 'manifest.json', 'servers'], { cwd: staging });
+execFileSync('zip', ['-q', '-r', output, 'manifest.json', 'servers', 'bin'], { cwd: staging });
 rmSync(staging, { recursive: true, force: true });
 
 if (!existsSync(output)) throw new Error(`MCPB non créé: ${output}`);

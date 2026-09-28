@@ -28,20 +28,33 @@ Installer ensuite `dist/llm-wiki-claude.mcpb` dans :
 Claude Desktop → Settings → Extensions → Install Extension
 ```
 
-Sélectionner le dossier exact du workspace, par exemple :
+Sélectionner le dossier d'état de `wiki-manager` :
 
 ```text
-/tmp/llm-wiki-test/workspaces/acpi
+<manager-state-directory>
 ```
+
+L'extension découvre les workspaces enregistrés. Elle expose
+`wiki_workspace_list`, `wiki_workspace_current` et
+`wiki_workspace_select`. Après sélection, les outils standards
+(`wiki_search_context`, `wiki_graph_view`, etc.) utilisent le workspace actif.
+La sélection reste en mémoire pendant la session Claude et est réinitialisée
+au redémarrage de l'extension. Un workspace non initialisé est ignoré et
+signalé dans le journal ; il ne bloque pas les autres workspaces.
+
+Les outils `wiki_skill_list` et `wiki_skill_run` listent puis exécutent un skill
+demandé explicitement via le `wiki-manager` local. L'outil `wiki_ingest` lance
+le pipeline natif d'ingestion des sources en attente. Ils fonctionnent depuis
+Claude Desktop sans dépendre d'un shell cloud ou d'une interface ShellUI.
 
 Puis sélectionner le dossier contenant `dist/bin/wiki.js` :
 
 ```text
-/Users/dotdrelle/Developpement/wikiLLM/llm-wiki
+<llm-wiki-engine-directory>
 ```
 
-L'extension lit le token MCP dans le `.env` du workspace et conserve ce
-workspace comme périmètre exclusif de la connexion.
+L'extension lit le token MCP dans le `.env` de chaque workspace. Les outils
+restent isolés par le workspace actif de la session.
 
 ### Skill Claude
 
@@ -58,24 +71,38 @@ Claude Desktop → Settings → Plugins → Importer un plugin
 ```
 
 Le plugin contient uniquement le skill `llm-wiki`. Il ne démarre pas un second
-serveur MCP : les outils sont fournis par l’extension `.mcpb`.
+serveur MCP : les outils sont fournis par l'extension `.mcpb`. Le même fichier
+`.mcpb` donne accès à tous les workspaces du registre ; il n'est pas nécessaire
+de générer un paquet par workspace.
 
 Le plugin peut aussi exécuter les skills headless sans extension MCP. Il lit la
 liste des workspaces dans le registre de `wiki-manager`. Si plusieurs
-workspaces existent, Claude demande lequel utiliser :
+workspaces existent, Claude demande lequel utiliser. L’ingestion n’est pas un
+skill : c’est une commande native du moteur, exposée par `wiki_ingest`.
 
 ```text
-/llm-wiki lance ingest
+/llm-wiki lance l’ingestion des sources en attente
 ```
 
 ou le workspace peut être donné directement :
 
 ```text
-/llm-wiki lance ingest sur ACPI
+/llm-wiki lance l’ingestion des sources en attente sur ACPI
 ```
 
-Dans ce second cas, le skill exact `ingest` est transmis à `wiki-manager` avec
-le workspace `ACPI`.
+Dans ce second cas, l’outil `wiki_ingest` appelle localement
+`wiki-workspace wiki ACPI ingest`.
+
+Les commandes natives sont également disponibles via `wiki_command_run` :
+
+```text
+/wiki doctor
+/wiki run <arguments>
+/wiki build
+/wiki export
+```
+
+Elles ne doivent pas être recherchées dans la liste des skills du workspace.
 
 ## Utilisation
 
