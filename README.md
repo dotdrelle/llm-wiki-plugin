@@ -53,6 +53,32 @@ Puis sélectionner le dossier contenant `dist/bin/wiki.js` :
 <llm-wiki-engine-directory>
 ```
 
+Le champ attend le dossier `llm-wiki`, pas le fichier `wiki.js` et pas le
+dossier `dist/bin`.
+
+Installations possibles :
+
+```text
+# dépôt de développement
+/chemin/vers/wikiLLM/llm-wiki/dist/bin/wiki.js
+
+# dépendance npm locale
+/chemin/vers/projet/node_modules/llm-wiki/dist/bin/wiki.js
+
+# paquet npm global
+$(npm root -g)/llm-wiki/dist/bin/wiki.js
+```
+
+Dans l’interface Claude, sélectionner dans tous les cas le dossier situé avant
+`/dist/bin/wiki.js`. Pour vérifier une installation npm globale :
+
+```bash
+test -f "$(npm root -g)/llm-wiki/dist/bin/wiki.js" && echo "wiki.js trouvé"
+```
+
+Avec le dépôt de développement, construire d’abord le moteur avec `pnpm build`
+dans `llm-wiki/`.
+
 L'extension lit le token MCP dans le `.env` de chaque workspace. Les outils
 restent isolés par le workspace actif de la session.
 
