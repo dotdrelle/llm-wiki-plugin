@@ -4,8 +4,10 @@ import { cpSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { assertPluginVersions } from './check-versions.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+assertPluginVersions();
 const source = join(root, 'claude-plugin');
 const staging = join(root, '.claude-plugin-staging');
 const output = join(root, 'dist', 'llm-wiki.plugin');

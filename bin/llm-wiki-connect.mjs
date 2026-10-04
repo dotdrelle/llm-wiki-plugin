@@ -9,6 +9,9 @@ import { createInterface } from 'node:readline/promises';
 import { createInterface as createLineInterface } from 'node:readline';
 
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// Kept equal to mcpb/manifest.json and claude-plugin/.claude-plugin/plugin.json:
+// the build scripts refuse to package when the three disagree.
+const CONNECTOR_VERSION = '0.6.0';
 
 function configPath() {
   if (process.env.LLM_WIKI_CONNECTOR_CONFIG) return resolve(process.env.LLM_WIKI_CONNECTOR_CONFIG);
@@ -422,7 +425,7 @@ async function runMultiMcp() {
       await call('initialize', {
         protocolVersion: '2025-11-25',
         capabilities: {},
-        clientInfo: { name: 'llm-wiki-claude-multiplexer', version: '0.4.0' },
+        clientInfo: { name: 'llm-wiki-claude-multiplexer', version: CONNECTOR_VERSION },
       });
       child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} })}\n`);
       children.push({ workspace, child, call });
@@ -539,7 +542,7 @@ async function runMultiMcp() {
         result: {
           protocolVersion: '2025-11-25',
           capabilities: { tools: { listChanged: false } },
-          serverInfo: { name: 'llm-wiki-claude', version: '0.4.0' },
+          serverInfo: { name: 'llm-wiki-claude', version: CONNECTOR_VERSION },
           instructions: `Workspaces disponibles: ${children.map((entry) => entry.workspace.name).join(', ')}. Appelez wiki_workspace_select avant les outils wiki_* si aucun workspace actif n'est indiqué. La sélection reste active pour cette session Claude.`,
         },
       });
