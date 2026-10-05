@@ -42,6 +42,11 @@ node scripts/check-versions.mjs
 `bin/llm-wiki-connect.mjs`, reconstruire **et** réinstaller l'extension (voir
 « Mettre à jour »).
 
+Le script de release du workspace (`build-and-push.sh`) aligne ces trois numéros
+sur la version coordonnée (`SYNC_VERSIONS_ONLY=1`) puis reconstruit `dist/` ;
+`scripts/check-versions.mjs` reste le contrôle local, et le `check-versions` du
+manager les vérifie quand le dépôt est présent.
+
 ## Installer
 
 ### Extension MCP
