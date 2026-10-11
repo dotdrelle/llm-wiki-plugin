@@ -152,10 +152,10 @@ Limites actuelles, à connaître :
   transmis tels quels au moteur, y compris pour une commande qui écrit.
 
 ```text
-Sélectionne le workspace ACPI.
+Sélectionne le workspace ATLAS.
 Recherche les informations sur le dernier COPIL.
 Lance l'ingestion des sources en attente.
-Exécute /wiki doctor sur ACPI.
+Exécute /wiki doctor sur ATLAS.
 Exécute la compétence wiki-build.
 ```
 
@@ -173,7 +173,7 @@ dans `~/.bun/bin`).
 WIKI_MANAGER_STATE_DIR=<dossier-manager> node bin/llm-wiki-connect.mjs list
 
 # un seul workspace en stdio (sans multiplexage)
-node bin/llm-wiki-connect.mjs mcp --workspace acpi
+node bin/llm-wiki-connect.mjs mcp --workspace atlas
 
 # le connecteur multi-workspace, comme Claude Desktop le lance
 WIKI_MANAGER_STATE_DIR=<dossier-manager> LLM_WIKI_ENGINE_HOME=<dossier-llm-wiki> \
