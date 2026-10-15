@@ -1,190 +1,185 @@
-# llm-wiki Desktop pour Claude
+# llm-wiki Desktop for Claude
 
-Ce paquet connecte Claude Desktop aux workspaces `llm-wiki` locaux via MCP.
-Il s'appuie sur le moteur `llm-wiki` (`dist/bin/wiki.js`) et sur le registre de
-`wiki-manager` pour trouver les workspaces. Il ne nécessite ni ShellUI ni
-`serve`.
+This package connects Claude Desktop to local `llm-wiki` workspaces over MCP.
+It relies on the `llm-wiki` engine (`dist/bin/wiki.js`) and on the
+`wiki-manager` registry to find the workspaces. It needs neither the ShellUI
+nor `serve`.
 
-Il produit deux fichiers Claude complémentaires :
+It produces two complementary Claude files:
 
-- `dist/llm-wiki-claude.mcpb` : l'extension MCP locale (outils `wiki_*`) ;
-- `dist/llm-wiki.plugin` : le skill Claude `llm-wiki` et ses instructions.
+- `dist/llm-wiki-claude.mcpb`: the local MCP extension (`wiki_*` tools);
+- `dist/llm-wiki.plugin`: the `llm-wiki` Claude skill and its instructions.
 
-Une seule extension donne accès à **tous** les workspaces du registre : il
-n'y a pas un paquet par workspace.
+A single extension gives access to **all** the workspaces of the registry:
+there is no package per workspace.
 
-## Prérequis
+## Requirements
 
-- **Node.js 22 ou plus** dans le `PATH` vu par Claude Desktop (le moteur
-  l'exige).
-- Un moteur `llm-wiki` construit : `pnpm build` dans `llm-wiki/` pour un dépôt
-  de développement.
-- Un dossier d'état `wiki-manager` contenant `workspaces/`, avec des workspaces
-  initialisés (`wiki init`).
+- **Node.js 22 or newer** in the `PATH` seen by Claude Desktop (the engine
+  requires it).
+- A built `llm-wiki` engine: `pnpm build` in `llm-wiki/` for a development
+  checkout.
+- A `wiki-manager` state directory containing `workspaces/`, with initialized
+  workspaces (`wiki init`).
 
-## Construire
+## Build
 
 ```bash
 node scripts/build-mcpb.mjs
 node scripts/build-claude-plugin.mjs
 ```
 
-Les trois numéros de version — `CONNECTOR_VERSION` dans
-`bin/llm-wiki-connect.mjs`, `mcpb/manifest.json` et
-`claude-plugin/.claude-plugin/plugin.json` — doivent être identiques ; les deux
-scripts refusent de construire sinon. Pour vérifier seul :
+The three version numbers — `CONNECTOR_VERSION` in
+`bin/llm-wiki-connect.mjs`, `mcpb/manifest.json` and
+`claude-plugin/.claude-plugin/plugin.json` — must be identical; both scripts
+refuse to build otherwise. To check them alone:
 
 ```bash
 node scripts/check-versions.mjs
 ```
 
-`dist/` n'est pas versionné : après toute modification de
-`bin/llm-wiki-connect.mjs`, reconstruire **et** réinstaller l'extension (voir
-« Mettre à jour »).
+`dist/` is not versioned: after any change to `bin/llm-wiki-connect.mjs`,
+rebuild **and** reinstall the extension (see "Update").
 
-Le script de release du workspace (`build-and-push.sh`) aligne ces trois numéros
-sur la version coordonnée (`SYNC_VERSIONS_ONLY=1`) puis reconstruit `dist/` ;
-`scripts/check-versions.mjs` reste le contrôle local, et le `check-versions` du
-manager les vérifie quand le dépôt est présent.
+The workspace release script (`build-and-push.sh`) aligns these three numbers
+on the coordinated version (`SYNC_VERSIONS_ONLY=1`) and then rebuilds `dist/`;
+`scripts/check-versions.mjs` remains the local check, and the manager's
+`check-versions` verifies them when the repository is present.
 
-## Installer
+## Install
 
-### Extension MCP
+### MCP extension
 
-`Claude Desktop → Settings → Extensions → Install Extension`, puis choisir
-`dist/llm-wiki-claude.mcpb`. Deux champs sont demandés :
+`Claude Desktop → Settings → Extensions → Install Extension`, then choose
+`dist/llm-wiki-claude.mcpb`. Two fields are requested:
 
-- **wiki-manager state directory** : le dossier qui contient `workspaces/`
-  (et le `.env` du manager). Choisir un dossier **permanent** : un dossier
-  sous `/tmp` est vidé au redémarrage du Mac et l'extension démarrerait alors
-  sans aucun workspace.
-- **wiki-workspace installation directory** : le dossier `llm-wiki` qui
-  contient `dist/bin/wiki.js` — pas le fichier `wiki.js`, pas `dist/bin`.
+- **wiki-manager state directory**: the folder that contains `workspaces/`
+  (and the manager `.env`). Choose a **permanent** folder: a folder under
+  `/tmp` is emptied when the Mac restarts, and the extension would then start
+  with no workspace at all.
+- **wiki-workspace installation directory**: the `llm-wiki` folder that
+  contains `dist/bin/wiki.js` — not the `wiki.js` file, not `dist/bin`.
 
 ```text
-# dépôt de développement
-/chemin/vers/wikiLLM/llm-wiki
+# development checkout
+/path/to/wikiLLM/llm-wiki
 
-# dépendance npm locale
-/chemin/vers/projet/node_modules/llm-wiki
+# local npm dependency
+/path/to/project/node_modules/llm-wiki
 
-# paquet npm global (résoudre le chemin dans un terminal)
+# global npm package (resolve the path in a terminal)
 $(npm root -g)/llm-wiki
 ```
 
 ```bash
-test -f "$(npm root -g)/llm-wiki/dist/bin/wiki.js" && echo "wiki.js trouvé"
+test -f "$(npm root -g)/llm-wiki/dist/bin/wiki.js" && echo "wiki.js found"
 ```
 
-Le sélecteur de dossier de Claude veut le chemin absolu résolu, pas `$(...)`.
+Claude's folder picker wants the resolved absolute path, not `$(...)`.
 
-### Skill Claude
+### Claude skill
 
-`Claude Desktop → Settings → Plugins → Importer un plugin`, puis choisir
-`dist/llm-wiki.plugin`. Le plugin ne contient que le skill `llm-wiki` et le
-script `run-wiki-skill.py` ; il ne démarre aucun serveur MCP.
+`Claude Desktop → Settings → Plugins → Import plugin`, then choose
+`dist/llm-wiki.plugin`. The plugin contains only the `llm-wiki` skill and the
+`run-wiki-skill.py` script; it starts no MCP server.
 
-## Mettre à jour
+## Update
 
-1. `git pull` dans ce dépôt, puis reconstruire les deux fichiers.
-2. Réinstaller `dist/llm-wiki-claude.mcpb` (même chemin d'installation) et
-   réimporter `dist/llm-wiki.plugin` si `skills/` a changé.
-3. Désactiver puis réactiver l'extension, ou redémarrer Claude Desktop.
+1. `git pull` in this repository, then rebuild both files.
+2. Reinstall `dist/llm-wiki-claude.mcpb` (same install path) and re-import
+   `dist/llm-wiki.plugin` if `skills/` changed.
+3. Disable and re-enable the extension, or restart Claude Desktop.
 
-Pour vérifier que la version installée est celle de la source :
+To check that the installed version is the one from the source:
 
 ```bash
 diff -q "$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.dotdrelle.llm-wiki-claude/bin/llm-wiki-connect.mjs" \
-  bin/llm-wiki-connect.mjs && echo "extension à jour"
+  bin/llm-wiki-connect.mjs && echo "extension up to date"
 ```
 
-La version est aussi renvoyée par le serveur (`serverInfo.version`) à
-l'initialisation MCP.
+The version is also returned by the server (`serverInfo.version`) at MCP
+initialization.
 
-## Fonctionnement multi-workspace
+## Multi-workspace behaviour
 
-Au démarrage, l'extension lit le registre `wiki-manager` et lance **un
-processus moteur `wiki.js mcp` par workspace initialisé**. Un workspace non
-initialisé est ignoré et signalé dans le journal de l'extension ; il ne bloque
-pas les autres.
+At startup, the extension reads the `wiki-manager` registry and starts **one
+`wiki.js mcp` engine process per initialized workspace**. An uninitialized
+workspace is skipped and reported in the extension log; it does not block the
+others.
 
-- `wiki_workspace_list` liste les workspaces, `wiki_workspace_select` choisit
-  le workspace actif, `wiki_workspace_current` le rappelle.
-- Tous les autres outils `wiki_*` (recherche, lecture, graphe, provenance,
-  écriture, aide…) sont routés vers le **workspace actif**. Sans sélection, ils
-  sont refusés avec une indication ; s'il n'existe qu'un workspace, il est
-  sélectionné d'office.
-- Le jeton MCP de chaque workspace est lu dans son `.env` ; le modèle ne
-  choisit jamais un chemin à partir du texte de la demande.
+- `wiki_workspace_list` lists the workspaces, `wiki_workspace_select` picks the
+  active workspace, `wiki_workspace_current` reports it back.
+- All the other `wiki_*` tools (search, read, graph, provenance, write, help…)
+  are routed to the **active workspace**. Without a selection they are refused
+  with a hint; if there is only one workspace, it is selected automatically.
+- Each workspace's MCP token is read from its `.env`; the model never picks a
+  path from the request text.
 
-Limites actuelles, à connaître :
+Current limits, worth knowing:
 
-- **Un seul workspace actif, partagé.** La sélection vit dans le processus de
-  l'extension, que Claude Desktop partage normalement entre les
-  conversations : changer de workspace dans une conversation le change pour
-  les autres. Revérifier avec `wiki_workspace_current` en cas de doute.
-- **Pas de requête sur plusieurs workspaces à la fois.** Pour comparer deux
-  workspaces, les sélectionner l'un après l'autre ; éviter les appels en
-  parallèle juste après un changement de sélection.
-- **Registre lu au démarrage seulement.** Un nouveau workspace, ou un
-  workspace initialisé depuis, n'apparaît qu'après un redémarrage de
-  l'extension.
-- **Un processus moteur par workspace** reste en mémoire pendant toute la
-  session, workspace utilisé ou non.
-- **Une seule ingestion suivie à la fois** : `wiki_ingest_stop` arrête la
-  dernière lancée.
-- **Les écritures ne passent pas par Donna.** `wiki_write_page`,
-  `wiki_add_source`, `template_write` et `profile_update` écrivent
-  directement ; seuls les verrous du moteur les refusent pendant un job de
-  production (`PRODUCTION_JOB_ACTIVE`).
+- **One active workspace, shared.** The selection lives in the extension
+  process, which Claude Desktop normally shares across conversations: changing
+  workspace in one conversation changes it for the others. Re-check with
+  `wiki_workspace_current` when in doubt.
+- **No query across several workspaces at once.** To compare two workspaces,
+  select them one after the other; avoid parallel calls right after a selection
+  change.
+- **Registry read at startup only.** A new workspace, or one initialized
+  afterwards, appears only after restarting the extension.
+- **One engine process per workspace** stays in memory for the whole session,
+  used or not.
+- **One tracked ingestion at a time**: `wiki_ingest_stop` stops the last one
+  started.
+- **Writes do not go through Donna.** `wiki_write_page`, `wiki_add_source`,
+  `template_write` and `profile_update` write directly; only the engine locks
+  refuse them during a production job (`PRODUCTION_JOB_ACTIVE`).
 
-## Skills, ingestion et commandes natives
+## Skills, ingestion and native commands
 
-- `wiki_skill_list` / `wiki_skill_run` listent puis exécutent un skill du
-  workspace actif (`.wiki/skills/*.md`) via
-  `wiki-manager --headless --skill`. Ce mode n'approuve rien automatiquement :
-  un skill qui modifie le workspace s'arrête en attente d'approbation, à
-  donner dans le ShellUI ou dans `serve`.
-- `wiki_ingest` lance l'ingestion native (`wiki-workspace wiki <ws> ingest`) ;
-  ce n'est pas un skill. La progression est relayée à Claude.
-- `wiki_command_run` exécute `doctor`, `run`, `build` ou `export` via
-  `wiki-workspace wiki <ws> <commande>`. Avec `run`, les arguments sont
-  transmis tels quels au moteur, y compris pour une commande qui écrit.
+- `wiki_skill_list` / `wiki_skill_run` list then run a skill of the active
+  workspace (`.wiki/skills/*.md`) through `wiki-manager --headless --skill`.
+  This mode approves nothing automatically: a skill that modifies the workspace
+  stops waiting for approval, to be given in the ShellUI or in `serve`.
+- `wiki_ingest` runs the native ingestion (`wiki-workspace wiki <ws> ingest`);
+  it is not a skill. Progress is relayed to Claude.
+- `wiki_command_run` runs `doctor`, `run`, `build` or `export` through
+  `wiki-workspace wiki <ws> <command>`. With `run`, the arguments are passed
+  unchanged to the engine, including for a command that writes.
 
 ```text
-Sélectionne le workspace ATLAS.
-Recherche les informations sur le dernier COPIL.
-Lance l'ingestion des sources en attente.
-Exécute /wiki doctor sur ATLAS.
-Exécute la compétence wiki-build.
+Select the ATLAS workspace.
+Search for information about the latest COPIL.
+Run the ingestion of the pending sources.
+Run /wiki doctor on ATLAS.
+Run the wiki-build skill.
 ```
 
-Hors Claude Desktop (Cowork, Claude Code), le skill peut aussi lancer
-`scripts/run-wiki-skill.py`, qui lit le même registre et demande le workspace
-quand il y en a plusieurs. Pour une installation de développement, le script
-découvre le manager voisin de `LLM_WIKI_ENGINE_HOME` ; sinon définir
-`LLM_WIKI_MANAGER_BIN` vers `wiki-manager.js` (et `BUN_BIN` si Bun n'est pas
-dans `~/.bun/bin`).
+Outside Claude Desktop (Cowork, Claude Code), the skill can also launch
+`scripts/run-wiki-skill.py`, which reads the same registry and asks for the
+workspace when there are several. For a development install, the script
+discovers the manager next to `LLM_WIKI_ENGINE_HOME`; otherwise set
+`LLM_WIKI_MANAGER_BIN` to `wiki-manager.js` (and `BUN_BIN` if Bun is not in
+`~/.bun/bin`).
 
-## Diagnostic local
+## Local diagnostics
 
 ```bash
-# workspaces détectés
-WIKI_MANAGER_STATE_DIR=<dossier-manager> node bin/llm-wiki-connect.mjs list
+# detected workspaces
+WIKI_MANAGER_STATE_DIR=<manager-dir> node bin/llm-wiki-connect.mjs list
 
-# un seul workspace en stdio (sans multiplexage)
+# a single workspace over stdio (no multiplexing)
 node bin/llm-wiki-connect.mjs mcp --workspace atlas
 
-# le connecteur multi-workspace, comme Claude Desktop le lance
-WIKI_MANAGER_STATE_DIR=<dossier-manager> LLM_WIKI_ENGINE_HOME=<dossier-llm-wiki> \
+# the multi-workspace connector, as Claude Desktop launches it
+WIKI_MANAGER_STATE_DIR=<manager-dir> LLM_WIKI_ENGINE_HOME=<llm-wiki-dir> \
   node bin/llm-wiki-connect.mjs multi-mcp
 ```
 
-Les deux derniers attendent des messages MCP JSON-RPC sur l'entrée standard.
-Le journal de l'extension (Claude Desktop → Settings → Extensions) montre les
-workspaces ignorés et les erreurs de démarrage du moteur.
+The last two expect MCP JSON-RPC messages on standard input. The extension log
+(Claude Desktop → Settings → Extensions) shows the skipped workspaces and the
+engine startup errors.
 
-## Langue
+## Language
 
-`language` du `.wikirc.yaml` du workspace, puis la langue du système
-(`LANG`/`LC_*`), puis `en`.
+`language` from the workspace `.wikirc.yaml`, then the system language
+(`LANG`/`LC_*`), then `en`.

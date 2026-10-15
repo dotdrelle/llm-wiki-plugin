@@ -24,5 +24,5 @@ rmSync(output, { force: true });
 execFileSync('zip', ['-q', '-r', output, '.'], { cwd: staging });
 rmSync(staging, { recursive: true, force: true });
 
-if (!existsSync(output)) throw new Error(`Plugin Claude non créé: ${output}`);
+if (!existsSync(output)) throw new Error(`Claude plugin was not created: ${output}`);
 console.log(output);

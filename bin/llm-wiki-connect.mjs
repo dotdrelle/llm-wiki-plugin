@@ -178,23 +178,23 @@ function selectWorkspace(name) {
   if (requestedName) {
     const normalizedName = requestedName.toLocaleLowerCase();
     const found = workspaces.find((workspace) => workspace.name.toLocaleLowerCase() === normalizedName);
-    if (!found) throw new Error(`Workspace introuvable: ${requestedName}`);
+    if (!found) throw new Error(`Workspace not found: ${requestedName}`);
     return found;
   }
   const path = process.env.WIKI_WORKSPACE_PATH;
   if (path) return workspaceFromPath(path);
   if (workspaces.length === 1) return workspaces[0];
-  if (!workspaces.length) throw new Error('Aucun workspace détecté. Configurez WIKI_MANAGER_STATE_DIR ou WIKI_WORKSPACES_DIR.');
-  throw new Error(`Plusieurs workspaces détectés (${workspaces.map((item) => item.name).join(', ')}). Utilisez --workspace <nom>.`);
+  if (!workspaces.length) throw new Error('No workspace found. Configure WIKI_MANAGER_STATE_DIR or WIKI_WORKSPACES_DIR.');
+  throw new Error(`Multiple workspaces found (${workspaces.map((item) => item.name).join(', ')}). Use --workspace <name>.`);
 }
 
 function printUsage() {
   console.log(`Usage:
   llm-wiki-connect.mjs setup [--manager-home <path>] [--workspaces-home <path>] [--engine-home <path>]
   llm-wiki-connect.mjs list
-  llm-wiki-connect.mjs mcp --workspace <nom>
+  llm-wiki-connect.mjs mcp --workspace <name>
   llm-wiki-connect.mjs multi-mcp
-  llm-wiki-connect.mjs claude-config --workspace <nom>`);
+  llm-wiki-connect.mjs claude-config --workspace <name>`);
 }
 
 function writeJsonRpc(message) {
@@ -261,7 +261,7 @@ function runHeadlessSkill(workspace, skill) {
       if (settled) return;
       settled = true;
       child.kill('SIGTERM');
-      resolveRun({ status: 'timeout', exitCode: 124, output: output.trim(), error: 'Le délai d’exécution du skill est dépassé.' });
+      resolveRun({ status: 'timeout', exitCode: 124, output: output.trim(), error: 'The skill run timed out.' });
     }, 3_630_000);
     child.on('error', (cause) => {
       if (settled) return;
@@ -322,7 +322,7 @@ function runWorkspaceIngest(workspace, progress, requestId) {
       stop();
       settled = true;
       child.kill('SIGTERM');
-      resolveRun({ status: 'timeout', exitCode: 124, output: output.trim(), error: 'Le délai d’ingestion est dépassé.' });
+      resolveRun({ status: 'timeout', exitCode: 124, output: output.trim(), error: 'The ingestion timed out.' });
     }, 3_630_000);
     child.on('error', (cause) => {
       if (settled) return;
@@ -357,7 +357,7 @@ function runWorkspaceCommand(workspace, commandName, args = []) {
       if (settled) return;
       settled = true;
       child.kill('SIGTERM');
-      resolveRun({ status: 'timeout', exitCode: 124, output: output.trim(), error: 'Le délai de la commande est dépassé.' });
+      resolveRun({ status: 'timeout', exitCode: 124, output: output.trim(), error: 'The command timed out.' });
     }, 3_630_000);
     child.on('error', (cause) => {
       if (settled) return;
@@ -377,9 +377,9 @@ function runWorkspaceCommand(workspace, commandName, args = []) {
 async function runMultiMcp() {
   const configured = homeConfig();
   const entrypoint = process.env.LLM_WIKI_ENTRYPOINT || resolve(configured.engineHome, 'dist/bin/wiki.js');
-  if (!existsSync(entrypoint)) throw new Error(`Entrypoint llm-wiki introuvable: ${entrypoint}`);
+  if (!existsSync(entrypoint)) throw new Error(`llm-wiki entrypoint not found: ${entrypoint}`);
   const workspaces = discoverWorkspaces();
-  if (!workspaces.length) throw new Error('Aucun workspace détecté dans le registre wiki-manager.');
+  if (!workspaces.length) throw new Error('No workspace found in the wiki-manager registry.');
 
   let childRequestId = 0;
   const children = [];
@@ -434,7 +434,7 @@ async function runMultiMcp() {
       child.kill();
     }
   }
-  if (!children.length) throw new Error('Aucun workspace MCP initialisable.');
+  if (!children.length) throw new Error('No workspace MCP server could be started.');
 
   const workspaceTools = new Map();
   for (const entry of children) {
@@ -512,7 +512,7 @@ async function runMultiMcp() {
       ...workspaceControlTools,
       ...(selected?.tools ?? []).map((tool) => ({
         ...tool,
-        description: `[workspace actif: ${activeWorkspace || 'à sélectionner'}] ${tool.description || ''}`.trim(),
+        description: `[active workspace: ${activeWorkspace || 'none selected'}] ${tool.description || ''}`.trim(),
       })),
     ];
   }
@@ -543,7 +543,7 @@ async function runMultiMcp() {
           protocolVersion: '2025-11-25',
           capabilities: { tools: { listChanged: false } },
           serverInfo: { name: 'llm-wiki-claude', version: CONNECTOR_VERSION },
-          instructions: `Workspaces disponibles: ${children.map((entry) => entry.workspace.name).join(', ')}. Appelez wiki_workspace_select avant les outils wiki_* si aucun workspace actif n'est indiqué. La sélection reste active pour cette session Claude.`,
+          instructions: `Available workspaces: ${children.map((entry) => entry.workspace.name).join(', ')}. Call wiki_workspace_select before the wiki_* tools when no active workspace is set. The selection stays active for this Claude session.`,
         },
       });
       return;
@@ -576,16 +576,16 @@ async function runMultiMcp() {
         const requestedWorkspace = String(message.params?.arguments?.workspace ?? '').trim();
         const selected = children.find((entry) => entry.workspace.name.toLocaleLowerCase() === requestedWorkspace.toLocaleLowerCase());
         if (!selected) {
-          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: `Workspace inconnu: ${requestedWorkspace}. Utilisez wiki_workspace_list.` }] } });
+          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: `Unknown workspace: ${requestedWorkspace}. Use wiki_workspace_list.` }] } });
           return;
         }
         activeWorkspace = selected.workspace.name;
-        writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text: JSON.stringify({ ...workspaceListResult(), message: `Workspace actif : ${activeWorkspace}` }, null, 2) }] } });
+        writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text: JSON.stringify({ ...workspaceListResult(), message: `Active workspace: ${activeWorkspace}` }, null, 2) }] } });
         return;
       }
       if (requested === 'wiki_skill_list') {
         if (!activeWorkspace) {
-          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Aucun workspace actif. Utilisez wiki_workspace_list puis wiki_workspace_select.' }] } });
+          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'No active workspace. Use wiki_workspace_list then wiki_workspace_select.' }] } });
           return;
         }
         const selected = workspaceTools.get(activeWorkspace)?.entry.workspace;
@@ -594,12 +594,12 @@ async function runMultiMcp() {
       }
       if (requested === 'wiki_skill_run') {
         if (!activeWorkspace) {
-          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Aucun workspace actif. Utilisez wiki_workspace_list puis wiki_workspace_select.' }] } });
+          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'No active workspace. Use wiki_workspace_list then wiki_workspace_select.' }] } });
           return;
         }
         const requestedSkill = String(message.params?.arguments?.skill ?? '').trim();
         if (!requestedSkill) {
-          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Le nom exact du skill est obligatoire.' }] } });
+          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'The exact skill name is required.' }] } });
           return;
         }
         const selected = workspaceTools.get(activeWorkspace)?.entry.workspace;
@@ -609,7 +609,7 @@ async function runMultiMcp() {
       }
       if (requested === 'wiki_ingest') {
         if (!activeWorkspace) {
-          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Aucun workspace actif. Utilisez wiki_workspace_list puis wiki_workspace_select.' }] } });
+          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'No active workspace. Use wiki_workspace_list then wiki_workspace_select.' }] } });
           return;
         }
         const selected = workspaceTools.get(activeWorkspace)?.entry.workspace;
@@ -633,19 +633,19 @@ async function runMultiMcp() {
         const result = await runWorkspaceIngest(selected, progress, message.id);
         result.durationMs = Date.now() - startedAt;
         result.summary = result.status === 'done'
-          ? `Ingestion terminée pour ${activeWorkspace}. Consultez la sortie pour le détail.`
-          : `Ingestion ${result.status} pour ${activeWorkspace}. Consultez l'erreur pour le diagnostic.`;
+          ? `Ingestion complete for ${activeWorkspace}. See the output for details.`
+          : `Ingestion ${result.status} for ${activeWorkspace}. See the error for diagnostics.`;
         writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text: JSON.stringify({ workspace: activeWorkspace, operation: 'ingest', ...result }, null, 2) }], ...(result.status === 'failed' || result.status === 'timeout' ? { isError: true } : {}) } });
         return;
       }
       if (requested === 'wiki_ingest_stop') {
         const stopped = activeIngest?.stop() ?? false;
-        writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text: JSON.stringify({ operation: 'ingest_stop', stopped, workspace: activeIngest?.workspace.name ?? activeWorkspace, message: stopped ? 'Arrêt demandé.' : 'Aucune ingestion active.' }, null, 2) }] } });
+        writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text: JSON.stringify({ operation: 'ingest_stop', stopped, workspace: activeIngest?.workspace.name ?? activeWorkspace, message: stopped ? 'Stop requested.' : 'No ingestion is running.' }, null, 2) }] } });
         return;
       }
       if (requested === 'wiki_command_run') {
         if (!activeWorkspace) {
-          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Aucun workspace actif. Utilisez wiki_workspace_list puis wiki_workspace_select.' }] } });
+          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'No active workspace. Use wiki_workspace_list then wiki_workspace_select.' }] } });
           return;
         }
         const commandName = String(message.params?.arguments?.command ?? '').trim();
@@ -653,7 +653,7 @@ async function runMultiMcp() {
           ? message.params.arguments.args.map((arg) => String(arg))
           : [];
         if (!['doctor', 'run', 'build', 'export'].includes(commandName)) {
-          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Commande native refusée. Commandes autorisées : doctor, run, build, export.' }] } });
+          writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Native command refused. Allowed commands: doctor, run, build, export.' }] } });
           return;
         }
         const selected = workspaceTools.get(activeWorkspace)?.entry.workspace;
@@ -662,13 +662,13 @@ async function runMultiMcp() {
         return;
       }
       if (!activeWorkspace) {
-        writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Aucun workspace actif. Utilisez wiki_workspace_list puis wiki_workspace_select.' }] } });
+        writeJsonRpc({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'No active workspace. Use wiki_workspace_list then wiki_workspace_select.' }] } });
         return;
       }
       const owner = workspaceTools.get(activeWorkspace);
       const tool = owner?.tools.find((candidate) => candidate.name === requested);
       if (!owner || !tool) {
-        writeJsonRpc({ jsonrpc: '2.0', id: message.id, error: { code: -32602, message: `Outil inconnu pour le workspace actif ${activeWorkspace}: ${requested}` } });
+        writeJsonRpc({ jsonrpc: '2.0', id: message.id, error: { code: -32602, message: `Unknown tool for the active workspace ${activeWorkspace}: ${requested}` } });
         return;
       }
       try {
@@ -680,7 +680,7 @@ async function runMultiMcp() {
       return;
     }
     if (message.id !== undefined) {
-      writeJsonRpc({ jsonrpc: '2.0', id: message.id, error: { code: -32601, message: `Méthode MCP non supportée: ${message.method}` } });
+      writeJsonRpc({ jsonrpc: '2.0', id: message.id, error: { code: -32601, message: `Unsupported MCP method: ${message.method}` } });
     }
   };
 
@@ -778,7 +778,7 @@ try {
 
   if (command === 'mcp') {
     const entrypoint = process.env.LLM_WIKI_ENTRYPOINT || resolve(homeConfig().engineHome, 'dist/bin/wiki.js');
-    if (!existsSync(entrypoint)) throw new Error(`Entrypoint llm-wiki introuvable: ${entrypoint}`);
+    if (!existsSync(entrypoint)) throw new Error(`llm-wiki entrypoint not found: ${entrypoint}`);
     const child = spawn(process.execPath, [entrypoint, 'mcp'], {
       cwd: workspace.workspacePath,
       env: {
@@ -796,7 +796,7 @@ try {
     await new Promise(() => {});
   }
 
-  throw new Error(`Commande inconnue: ${command}`);
+  throw new Error(`Unknown command: ${command}`);
 } catch (error) {
   console.error(`llm-wiki connector: ${error.message}`);
   process.exit(1);

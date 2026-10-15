@@ -139,13 +139,13 @@ def main() -> int:
                 "status": "workspace_required",
                 "skill": args.skill,
                 "workspaces": workspaces,
-                "message": "Plusieurs workspaces sont disponibles. Demandez lequel utiliser.",
+                "message": "Multiple workspaces are available. Ask which one to use.",
                 "exitCode": 2,
             }
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 2
         else:
-            raise SystemExit("Aucun workspace détecté dans le registre wiki-manager.")
+            raise SystemExit("No workspace found in the wiki-manager registry.")
 
     if args.manager_bin:
         os.environ["LLM_WIKI_MANAGER_BIN"] = str(Path(args.manager_bin).expanduser())
@@ -178,7 +178,7 @@ def main() -> int:
             "skill": args.skill,
             "exitCode": 124,
             "output": (error.stdout or "").strip() if isinstance(error.stdout, str) else "",
-            "error": "Le délai d'exécution du skill est dépassé.",
+            "error": "The skill run timed out.",
         }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return int(result["exitCode"])

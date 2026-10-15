@@ -22,5 +22,5 @@ rmSync(output, { force: true });
 execFileSync('zip', ['-q', '-r', output, 'manifest.json', 'servers', 'bin'], { cwd: staging });
 rmSync(staging, { recursive: true, force: true });
 
-if (!existsSync(output)) throw new Error(`MCPB non créé: ${output}`);
+if (!existsSync(output)) throw new Error(`MCPB was not created: ${output}`);
 console.log(output);
